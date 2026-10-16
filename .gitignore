@@ -10,3 +10,4 @@ sr_edge_auscultation/
 # artifacts
 datasets/
 models/
+utils/__pycache__/
