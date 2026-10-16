@@ -13,10 +13,10 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
-#SBATCH --mem=16G
+#SBATCH --mem=8G
 #SBATCH --time=00:15:00
 #SBATCH --gpus-per-node=a100_1g.5gb:1
-#SBATCH --account=qphan
+#SBATCH --account=def-sartmu
 
 set -euo pipefail
 
