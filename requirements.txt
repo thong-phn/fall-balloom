@@ -1,6 +1,6 @@
 numpy
-pytorch=2.14.1
-torchaudio=2.11.0
+pytorch==2.14.1
+torchaudio==2.11.0
 matplotlib
 soundfile
-torchcodec=0.17.0
+torchcodec==0.17.0
