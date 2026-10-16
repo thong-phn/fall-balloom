@@ -12,8 +12,8 @@
 #SBATCH --error=jobs/%x-%j.err
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=2
-#SBATCH --mem=8G
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=16G
 #SBATCH --time=00:15:00
 #SBATCH --gpus-per-node=a100_1g.5gb:1
 #SBATCH --account=def-sartmu
@@ -34,7 +34,8 @@ if [[ ! -f "$VENV_DIR/bin/activate" ]]; then
     exit 1
 fi
 source "$VENV_DIR/bin/activate"
-export OMP_NUM_THREADS="$SLURM_CPUS_PER_TASK"
+# Keep each worker's math libraries single-threaded to avoid oversubscribing CPUs.
+export OMP_NUM_THREADS=1
 
 if [[ ! -f "$DATA_DIR/metadata.csv" ]]; then
     echo "Missing CirCo metadata: $DATA_DIR/metadata.csv" >&2
@@ -50,4 +51,5 @@ srun --ntasks=1 --cpus-per-task="$SLURM_CPUS_PER_TASK" \
     python -u "$PROJECT_DIR/binary-heart-circo.py" \
     --metadata "$DATA_DIR/metadata.csv" \
     --data "$DATA_DIR" \
+    --num-workers "$SLURM_CPUS_PER_TASK" \
     --output "$CHECKPOINT"
