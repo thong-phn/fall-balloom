@@ -1,0 +1,12 @@
+# claude
+scripts/
+ieee-download/
+sr_edge_auscultation/
+
+# venv
+.venv/
+.claude/
+
+# artifacts
+datasets/
+models/
