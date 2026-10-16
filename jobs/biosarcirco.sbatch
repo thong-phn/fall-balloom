@@ -19,7 +19,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROJECT_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 DATA_DIR="$PROJECT_DIR/datasets/BioSARdBScene-CirCo"
 VENV_DIR="${VENV_DIR:-$PROJECT_DIR/.venv}"
 CHECKPOINT_DIR="$PROJECT_DIR/models/ckpt"
