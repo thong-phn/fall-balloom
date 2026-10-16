@@ -27,13 +27,13 @@ CHECKPOINT_DIR="$PROJECT_DIR/models/ckpt"
 
 cd "$PROJECT_DIR"
 module load StdEnv/2023 python/3.14
+source "$VENV_DIR/bin/activate"
 
 if [[ ! -f "$VENV_DIR/bin/activate" ]]; then
     echo "Missing Python environment: $VENV_DIR" >&2
     echo "Create it on Narval with the same Python module, then install torch and torchaudio." >&2
     exit 1
 fi
-source "$VENV_DIR/bin/activate"
 # Keep each worker's math libraries single-threaded to avoid oversubscribing CPUs.
 export OMP_NUM_THREADS=1
 
@@ -43,7 +43,8 @@ if [[ ! -f "$DATA_DIR/metadata.csv" ]]; then
 fi
 
 mkdir -p "$CHECKPOINT_DIR"
-CHECKPOINT="$CHECKPOINT_DIR/biosarcirco-${SLURM_JOB_ID}.pt"
+RUN_DATE="$(date +%y-%d-%m)"
+CHECKPOINT="$CHECKPOINT_DIR/biosarcirco-${SLURM_JOB_ID}-${RUN_DATE}.pt"
 
 python -c 'import torch, torchaudio; print("PyTorch:", torch.__version__); print("CUDA:", torch.version.cuda); print("GPU:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "unavailable"); assert torch.cuda.is_available(), "PyTorch cannot access the allocated GPU"'
 
