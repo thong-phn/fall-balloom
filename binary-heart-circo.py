@@ -1,4 +1,5 @@
 import argparse
+import os
 from pathlib import Path
 
 import torch
@@ -53,6 +54,12 @@ def main():
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--num-workers",
+        type=int,
+        default=int(os.environ.get("SLURM_CPUS_PER_TASK", os.cpu_count() or 1)),
+        help="DataLoader worker processes (defaults to the CPUs allocated by Slurm)",
+    )
     args = parser.parse_args()
 
 
@@ -65,10 +72,19 @@ def main():
     test_data = CirCoBioSAR(args.metadata, args.data, split="test", train=False)
 
 
-    train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, pin_memory=pin_memory)
+    num_workers = max(0, args.num_workers)
+    loader_options = {
+        "num_workers": num_workers,
+        "pin_memory": pin_memory,
+        "persistent_workers": num_workers > 0,
+    }
+
+    train_loader = DataLoader(
+        train_data, batch_size=args.batch_size, shuffle=True, **loader_options
+    )
     # One recording per batch 
-    val_loader = DataLoader(val_data, batch_size=1, shuffle=False, pin_memory=pin_memory)
-    test_loader = DataLoader(test_data, batch_size=1, shuffle=False, pin_memory=pin_memory)
+    val_loader = DataLoader(val_data, batch_size=1, shuffle=False, **loader_options)
+    test_loader = DataLoader(test_data, batch_size=1, shuffle=False, **loader_options)
 
     sample_features, _, _ = next(iter(train_loader))
     print(f"Model input shape: {tuple(sample_features.shape)}")
@@ -82,6 +98,7 @@ def main():
 
     print(
         f"Device: {device};" 
+        f"workers: {num_workers}; "
         f"train: {len(train_data)}; "
         f"val: {len(val_data)}; test: {len(test_data)}"
     )
