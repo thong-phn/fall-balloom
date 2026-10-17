@@ -10,8 +10,8 @@ import sys
 REPO_URL = "https://github.com/thong-phn/fall-balloom.git"
 PROJECT_DIR = Path("/kaggle/working/fall-balloom")
 DATA_DIR = Path("/kaggle/input/datasets/thongp/biosardbscene-circo/BioSARdBScene-CirCo")
-# Clean CirCo recordings (assumed Kaggle dataset location; override with --data)
-CIRCO_DATA_DIR = Path("/kaggle/input/datasets/thongp/circo/training_data/training_data")
+# Clean CirCo recordings (override with --data)
+CIRCO_DATA_DIR = Path("/kaggle/input/datasets/thongp/my-circo/CirCo/training_data/training_data")
 SCRIPTS = {
     "biosar": "binary-heart-biosar.py",
     "circo": "binary-heart-circo.py",
