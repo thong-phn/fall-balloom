@@ -10,6 +10,7 @@ settings stay comparable with the single-GPU scripts.
 """
 import argparse
 import os
+import time
 from pathlib import Path
 
 import torch
@@ -26,7 +27,7 @@ from utils.utils import set_seed
 DATASETS = {
     "biosar": {
         "cls": CirCoBioSAR,
-        "data": "./datasets/BioSARdBScene-CirCo",
+        "data": "/kaggle/input/datasets/thongp/biosardbscene-circo/BioSARdBScene-CirCo",
         "output": "models/ckpt/biosarcirco.pt",
     },
     "circo": {
@@ -200,6 +201,7 @@ def main():
             f"val: {len(val_data)}; test: {len(test_data)}"
         )
 
+    train_start = time.perf_counter()
     # training loop
     for epoch in range(args.epochs):
         train_sampler.set_epoch(epoch)
@@ -234,6 +236,10 @@ def main():
                 if is_main:
                     print(f"\tEarly stop at epoch {epoch} ")
                 break
+
+    train_seconds = time.perf_counter() - train_start
+    if is_main:
+        print(f"Training time: {time.strftime('%H:%M:%S', time.gmtime(train_seconds))} ({train_seconds:.1f}s)")
 
     if world_size > 1:
         dist.barrier()  # checkpoint written by rank 0 before it is read

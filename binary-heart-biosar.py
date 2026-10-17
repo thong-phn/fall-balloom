@@ -1,5 +1,6 @@
 import argparse
 import os
+import time
 from pathlib import Path
 
 import torch
@@ -108,6 +109,7 @@ def main():
         f"val: {len(val_data)}; test: {len(test_data)}"
     )
 
+    train_start = time.perf_counter()
     # training loop
     for epoch in range(args.epochs):
         train_loss, train_accuracy = run_one_epoch(model, train_loader, loss_fn, device, optimizer
@@ -137,6 +139,9 @@ def main():
                 print(f"\tEarly stop at epoch {epoch} ")
                 break
 
+
+    train_seconds = time.perf_counter() - train_start
+    print(f"Training time: {time.strftime('%H:%M:%S', time.gmtime(train_seconds))} ({train_seconds:.1f}s)")
 
     checkpoint = torch.load(output_path, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
