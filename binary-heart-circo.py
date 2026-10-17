@@ -89,10 +89,7 @@ def main():
     sample_features, _, _ = next(iter(train_loader))
     print(f"Model input shape: {tuple(sample_features.shape)}")
 
-    model = SimpleCNN().to(device)
-    if torch.cuda.device_count() >= 2: # 2 gpu setup
-        model = nn.DataParallel(model, device_ids=[0, 1])
-        
+    model = SimpleCNN().to(device)    
     loss_fn = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     output_path = Path(args.output)
