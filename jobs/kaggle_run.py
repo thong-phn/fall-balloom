@@ -16,7 +16,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--metadata", type=Path, default=DATA_DIR / "metadata.csv")
     parser.add_argument("--data", type=Path, default=DATA_DIR)
-    parser.add_argument("--epochs", type=int, default=1)
+    parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
