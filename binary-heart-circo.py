@@ -11,7 +11,7 @@ from utils.models import SimpleCNN
 from utils.utils import set_seed
 
 
-def run_epoch(model, loader, loss_fn, device, optimizer=None):
+def run_one_epoch(model, loader, loss_fn, device, optimizer=None):
     training = optimizer is not None
     model.train(training)
     total_loss = 0.0
@@ -90,6 +90,9 @@ def main():
     print(f"Model input shape: {tuple(sample_features.shape)}")
 
     model = SimpleCNN().to(device)
+    if torch.cuda.device_count() >= 2: # 2 gpu setup
+        model = nn.DataParallel(model, device_ids=[0, 1])
+        
     loss_fn = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     output_path = Path(args.output)
@@ -103,11 +106,11 @@ def main():
         f"val: {len(val_data)}; test: {len(test_data)}"
     )
 
-    for epoch in range(1, args.epochs + 1):
-        train_loss, train_accuracy = run_epoch(
-            model, train_loader, loss_fn, device, optimizer
+    # training loop
+    for epoch in range(args.epochs):
+        train_loss, train_accuracy = run_one_epoch(model, train_loader, loss_fn, device, optimizer
         )
-        val_loss, val_accuracy = run_epoch(model, val_loader, loss_fn, device)
+        val_loss, val_accuracy = run_one_epoch(model, val_loader, loss_fn, device)
         print(
             f"Epoch {epoch:02d}/{args.epochs}: "
             f"train_loss={train_loss:.4f} train_acc={train_accuracy:.3f} | "
@@ -128,7 +131,7 @@ def main():
 
     checkpoint = torch.load(output_path, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
-    test_loss, test_accuracy = run_epoch(model, test_loader, loss_fn, device)
+    test_loss, test_accuracy = run_one_epoch(model, test_loader, loss_fn, device)
     print(f"Test loss={test_loss:.4f} acc={test_accuracy:.3f}")
     print(f"Best checkpoint saved to {output_path}")
 
