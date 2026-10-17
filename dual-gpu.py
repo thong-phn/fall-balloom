@@ -39,7 +39,9 @@ DATASETS = {
 
 
 def binary_metrics(logits, labels):
-    """F1 (abnormal = positive class) and AUROC from per-recording logits."""
+    """
+    F1 (abnormal = positive class) and AUROC from per-recording logits.
+    """
     pred = logits >= 0
     true = labels >= 0.5
     tp = (pred & true).sum().item()

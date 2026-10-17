@@ -1,3 +1,19 @@
+Exp
+single gpu
+    normal/abnormal heart classification
+        simple cnn
+            model input: (batch=32, 1, 1, 64, mel=157)
+            Device: cuda; workers: 4; train: 2496; val: 312; test: 312
+            biosarcirco: test_loss=0.6511, test_acc=0.577
+            circo: test_loss0.6369, test_acc=0.599 
+
+
+dual gpu t4 kaggle: 30% faster time 
+
+
+
+
+
 Terminology
     Recording: whole audio file
     Clip: window, usually 5s
@@ -25,7 +41,7 @@ Validation
     It uses this result to select the best model checkpoint.
 
 Testing
-    - Testing uses the same process as validation.
-    - It loads the best checkpoint.
-    - It predicts each recording from its clips.
-    - It reports the final loss and accuracy
+    Testing uses the same process as validation.
+    It loads the best checkpoint.
+    It predicts each recording from its clips.
+    It reports the final loss and accuracy
