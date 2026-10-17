@@ -1,4 +1,6 @@
-"""Launch a short CirCo training run from a Kaggle notebook or terminal."""
+"""
+Python runner script.
+"""
 
 import argparse
 from pathlib import Path
