@@ -22,7 +22,7 @@ def main():
 
     project_dir = Path(__file__).resolve().parents[1]
     data_dir = args.data or args.metadata.parent
-    train_script = project_dir / "binary-heart-circo.py"
+    train_script = project_dir / "binary-heart-biosar.py"
 
     subprocess.run(
         [
