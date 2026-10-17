@@ -16,6 +16,7 @@ SCRIPTS = {
     "biosar": "binary-heart-biosar.py",
     "circo": "binary-heart-circo.py",
 }
+MULTI_GPU_SCRIPT = "dual-gpu.py"
 
 
 def main():
@@ -24,7 +25,8 @@ def main():
     parser.add_argument("--dataset", choices=SCRIPTS, default="biosar")
     parser.add_argument("--data", type=Path, help="audio root (defaults per --dataset)")
     parser.add_argument("--epochs", type=int, default=100)
-    parser.add_argument("--num-workers", type=int, default=4)
+    parser.add_argument("--num-workers", type=int, default=4, help="total, split across GPUs")
+    parser.add_argument("--gpus", type=int, default=1, help="2 = DDP over both T4s (dual-gpu.py)")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
@@ -38,7 +40,6 @@ def main():
     project_dir = PROJECT_DIR
     default_data = CIRCO_DATA_DIR if args.dataset == "circo" else DATA_DIR
     data_dir = args.data or default_data
-    train_script = project_dir / SCRIPTS[args.dataset]
     commit = subprocess.run(
         ["git", "-C", str(project_dir), "rev-parse", "--short", "HEAD"],
         check=True,
@@ -47,17 +48,28 @@ def main():
     ).stdout.strip()
     output_path = args.output or Path(f"/kaggle/working/{args.dataset}-kaggle-{commit}.pt")
 
-    subprocess.run(
-        [
-            sys.executable, str(train_script),
-            "--metadata", str(args.metadata),
-            "--data", str(data_dir),
-            "--epochs", str(args.epochs),
+    train_args = [
+        "--metadata", str(args.metadata),
+        "--data", str(data_dir),
+        "--epochs", str(args.epochs),
+        "--output", str(output_path),
+    ]
+    if args.gpus > 1:
+        command = [
+            sys.executable, "-m", "torch.distributed.run",
+            f"--nproc_per_node={args.gpus}",
+            str(project_dir / MULTI_GPU_SCRIPT),
+            "--dataset", args.dataset,
+            "--num-workers", str(max(1, args.num_workers // args.gpus)),
+            *train_args,
+        ]
+    else:
+        command = [
+            sys.executable, str(project_dir / SCRIPTS[args.dataset]),
             "--num-workers", str(args.num_workers),
-            "--output", str(output_path),
-        ],
-        check=True,
-    )
+            *train_args,
+        ]
+    subprocess.run(command, check=True)
 
 
 if __name__ == "__main__":
