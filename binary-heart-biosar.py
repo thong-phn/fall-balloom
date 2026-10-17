@@ -88,7 +88,8 @@ def main():
     test_loader = DataLoader(test_data, batch_size=1, shuffle=False, **loader_options)
 
     sample_features, _, _ = next(iter(train_loader))
-    print(f"-*50\nTRAINNING START")
+    print(f"-"*50)
+    print(f"TRAINNING START")
     print(f"Model input shape: {tuple(sample_features.shape)}")
 
     model = SimpleCNN().to(device)    

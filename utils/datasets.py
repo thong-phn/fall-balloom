@@ -51,6 +51,24 @@ class CirCoBioSAR(Dataset):
             item["mixture_id"],
         )
 
+
+class CirCo(CirCoBioSAR):
+    """
+    Clean CirCo version of CirCoBioSAR.
+    Same rows and train/val/test split (from the BioSAR metadata.csv), but the audio
+    is the original CirCo recording (primary_source) instead of the BioSAR mixture.
+    """
+    def __init__(self, metadata_path='./datasets/BioSARdBScene-CirCo/metadata.csv', data_path='./datasets/CirCo/training_data/training_data', split=None, train=False):
+        super().__init__(metadata_path, data_path, split=split, train=train)
+
+        # BioSAR mixture path -> clean CirCo file (same name as primary_source)
+        primary = {}
+        with open(metadata_path, newline="") as f:
+            for row in csv.DictReader(f):
+                primary[row["mixture_id"]] = Path(row["primary_source"]).name
+        for item in self.items:
+            item["audio_path"] = self.data_path / primary[item["mixture_id"]]
+
 if __name__ == "__main__":
     data = CirCoBioSAR(split='train')
     print(len(data))

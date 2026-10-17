@@ -6,7 +6,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from utils.datasets import CirCoBioSAR
+from utils.datasets import CirCo
 from utils.models import SimpleCNN
 from utils.utils import set_seed
 
@@ -48,9 +48,10 @@ def run_one_epoch(model, loader, loss_fn, device, optimizer=None):
 def main():
     parser = argparse.ArgumentParser(description="Train a binary CirCo heart classifier")
     parser.add_argument("--metadata", default="./datasets/BioSARdBScene-CirCo/metadata.csv")
-    parser.add_argument("--data", default="./datasets/BioSARdBScene-CirCo")
-    parser.add_argument("--output", default="models/ckpt/biosarcirco.pt")
+    parser.add_argument("--data", default="./datasets/CirCo/training_data/training_data")
+    parser.add_argument("--output", default="models/ckpt/circo.pt")
     parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--early-stop", type=int, default=5)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--seed", type=int, default=42)
@@ -67,9 +68,9 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     pin_memory = device.type == "cuda"
 
-    train_data = CirCoBioSAR(args.metadata, args.data, split="train", train=True)
-    val_data = CirCoBioSAR(args.metadata, args.data, split="val", train=False)
-    test_data = CirCoBioSAR(args.metadata, args.data, split="test", train=False)
+    train_data = CirCo(args.metadata, args.data, split="train", train=True)
+    val_data = CirCo(args.metadata, args.data, split="val", train=False)
+    test_data = CirCo(args.metadata, args.data, split="test", train=False)
 
 
     num_workers = max(0, args.num_workers)
@@ -87,6 +88,8 @@ def main():
     test_loader = DataLoader(test_data, batch_size=1, shuffle=False, **loader_options)
 
     sample_features, _, _ = next(iter(train_loader))
+    print(f"-"*50)
+    print(f"TRAINNING START")
     print(f"Model input shape: {tuple(sample_features.shape)}")
 
     model = SimpleCNN().to(device)    
@@ -95,6 +98,8 @@ def main():
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     best_val_loss = float("inf")
+    early_stop_tolerant = args.early_stop
+    early_stop_count = 0
 
     print(
         f"Device: {device};" 
@@ -109,12 +114,13 @@ def main():
         )
         val_loss, val_accuracy = run_one_epoch(model, val_loader, loss_fn, device)
         print(
-            f"Epoch {epoch:02d}/{args.epochs}: "
+            f"Epoch {epoch}/{args.epochs}: "
             f"train_loss={train_loss:.4f} train_acc={train_accuracy:.3f} | "
             f"val_loss={val_loss:.4f} val_acc={val_accuracy:.3f}"
         )
 
         if val_loss < best_val_loss:
+            early_stop_count = 0
             best_val_loss = val_loss
             torch.save(
                 {
@@ -125,6 +131,12 @@ def main():
                 },
                 output_path,
             )
+        else: 
+            early_stop_count += 1
+            if early_stop_count >= early_stop_tolerant: 
+                print(f"\tEarly stop at epoch {epoch} ")
+                break
+
 
     checkpoint = torch.load(output_path, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
