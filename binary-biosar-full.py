@@ -1,5 +1,6 @@
 import argparse
 import os
+import time
 from collections import Counter
 from pathlib import Path
 
@@ -174,6 +175,8 @@ def main():
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     best_val_f1 = float("-inf")
+    best_epoch, best_val_metrics = -1, {}
+    start_time = time.time()
     early_stop_tolerant = args.early_stop
     early_stop_count = 0
 
@@ -199,6 +202,7 @@ def main():
         if val_metrics["macro_f1"] > best_val_f1:
             early_stop_count = 0
             best_val_f1 = val_metrics["macro_f1"]
+            best_epoch, best_val_metrics = epoch, val_metrics
             torch.save(
                 {
                     "model_state_dict": model.state_dict(),
@@ -221,6 +225,19 @@ def main():
     print(f"Test: loss={test_loss:.4f} {fmt(test_metrics)}")
     per_class_report(test_logits, test_labels)
     print(f"Best checkpoint saved to {output_path}")
+
+    # Machine-readable summary read by the autoresearch agents. Selection metric: val_macro_f1.
+    print("---")
+    print(f"val_macro_f1:    {best_val_metrics['macro_f1']:.6f}")
+    print(f"val_bal_acc:     {best_val_metrics['bal_acc']:.6f}")
+    print(f"val_macro_auroc: {best_val_metrics['macro_auroc']:.6f}")
+    print(f"test_macro_f1:   {test_metrics['macro_f1']:.6f}")
+    print(f"test_bal_acc:    {test_metrics['bal_acc']:.6f}")
+    print(f"test_macro_auroc:{test_metrics['macro_auroc']:.6f}")
+    print(f"best_epoch:      {best_epoch}")
+    print(f"epochs_run:      {epoch + 1}")
+    print(f"num_params:      {sum(p.numel() for p in model.parameters())}")
+    print(f"train_seconds:   {time.time() - start_time:.1f}")
 
 if __name__ == "__main__":
     main()

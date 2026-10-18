@@ -37,9 +37,10 @@ single gpu
             
             biosar: 
             biosar-heartonly: loss=0.5060 acc=0.696 f1=0.621 auroc=0.791
-            biosarcirco: test_loss=0.6687 acc=0.571 f1=0.565 auroc=0.607
-            circo: test_loss=0.6100 acc=0.651 f1=0.615 auroc=0.707
+            biosarcirco: loss=0.6687 acc=0.571 f1=0.565 auroc=0.607
+            circo: loss=0.6100 acc=0.651 f1=0.615 auroc=0.707
             train circo, test biosar: loss=0.6417 acc=0.622 f1=0.459 auroc=0.656
+            train biosar, test circo: loss=0.6800 acc=0.609 f1=0.483 auroc=0.606
 
 
 
