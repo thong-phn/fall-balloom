@@ -1,3 +1,7 @@
+import os
+from pathlib import Path
+
+import numpy as np
 import torch
 import torch.nn.functional as F
 import torchaudio
@@ -18,14 +22,26 @@ mel = torchaudio.transforms.MelSpectrogram(
 )
 
 
-def preprocess(path, train=True):
+def _cache_file(path):
+    """Waveform cache entry for an audio file, or None when BIOSAR_CACHE_DIR is unset."""
+    cache_dir = os.environ.get("BIOSAR_CACHE_DIR")
+    if not cache_dir:
+        return None
+    return Path(cache_dir) / ("__".join(Path(path).parts[-3:]) + ".npy")
+
+
+def load_waveform(path):
     """
     Load audio
     Convert to mono
+    Resample to SR
     Remove DC
-    Split into 5-sec chunk (padding if less then 5s)
-    Apply log-mel features.
+    Result is cached as float32 .npy when BIOSAR_CACHE_DIR is set (outputs are identical).
     """
+    cache = _cache_file(path)
+    if cache is not None and cache.exists():
+        return torch.from_numpy(np.load(cache))
+
     audio, sample_rate = torchaudio.load(path)
     audio = audio.mean(dim=0, keepdim=True)
 
@@ -33,6 +49,22 @@ def preprocess(path, train=True):
         audio = torchaudio.functional.resample(audio, sample_rate, SR)
 
     audio = audio - audio.mean()
+
+    if cache is not None:
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        tmp = cache.with_name(cache.name + f".{os.getpid()}.tmp")
+        np.save(tmp, audio.numpy())  # np.save appends .npy
+        os.replace(str(tmp) + ".npy", cache)
+    return audio
+
+
+def preprocess(path, train=True):
+    """
+    Load audio (see load_waveform)
+    Split into 5-sec chunk (padding if less then 5s)
+    Apply log-mel features.
+    """
+    audio = load_waveform(path)
     length = audio.shape[-1]
 
     if length < CLIP_SAMPLES:
