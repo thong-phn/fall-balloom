@@ -9,10 +9,10 @@ from torch.utils.data import DataLoader
 
 from utils.datasets import CirCoBioSAR
 from utils.models import SimpleCNN
-from utils.utils import set_seed
+from utils.utils import binary_f1_auroc, set_seed
 
 
-def run_one_epoch(model, loader, loss_fn, device, optimizer=None):
+def run_one_epoch(model, loader, loss_fn, device, optimizer=None, outputs=None):
     training = optimizer is not None
     model.train(training)
     total_loss = 0.0
@@ -38,6 +38,9 @@ def run_one_epoch(model, loader, loss_fn, device, optimizer=None):
                 logits = model(features).mean().reshape(1)
                 loss = loss_fn(logits, labels)
             batch_size = 1
+
+        if outputs is not None:
+            outputs.append((logits.detach().reshape(-1).cpu(), labels.reshape(-1).cpu()))
 
         total_loss += loss.item() * batch_size
         correct += ((logits >= 0) == (labels >= 0.5)).sum().item()
@@ -145,8 +148,12 @@ def main():
 
     checkpoint = torch.load(output_path, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
-    test_loss, test_accuracy = run_one_epoch(model, test_loader, loss_fn, device)
-    print(f"Test loss={test_loss:.4f} acc={test_accuracy:.3f}")
+    test_outputs = []
+    test_loss, test_accuracy = run_one_epoch(model, test_loader, loss_fn, device, outputs=test_outputs)
+    test_f1, test_auroc = binary_f1_auroc(
+        torch.cat([o[0] for o in test_outputs]), torch.cat([o[1] for o in test_outputs])
+    )
+    print(f"Test loss={test_loss:.4f} acc={test_accuracy:.3f} f1={test_f1:.3f} auroc={test_auroc:.3f}")
     print(f"Best checkpoint saved to {output_path}")
 
 if __name__ == "__main__":

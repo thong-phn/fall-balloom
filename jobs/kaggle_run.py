@@ -12,7 +12,10 @@ PROJECT_DIR = Path("/kaggle/working/fall-balloom")
 DATA_DIR = Path("/kaggle/input/datasets/thongp/biosardbscene-circo/BioSARdBScene-CirCo")
 # Clean CirCo recordings (override with --data)
 CIRCO_DATA_DIR = Path("/kaggle/input/datasets/thongp/my-circo/CirCo/training_data/training_data")
+# Full BioSARdB scene dataset (override with --data/--metadata)
+FULL_DATA_DIR = Path("/kaggle/input/datasets/thongp/biosardbscene/BioSARDdBScene")
 SCRIPTS = {
+    "biosar-full": "binary-heart-biosar-full.py",  # BioSARdB mixtures, full dataset
     "biosar": "binary-heart-biosar.py",
     "circo": "binary-heart-circo.py",
     "mix": "binary-heart-mix.py",  # train on clean CirCo, test on BioSARdB
@@ -22,7 +25,7 @@ MULTI_GPU_SCRIPT = "dual-gpu.py"
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--metadata", type=Path, default=DATA_DIR / "metadata.csv")
+    parser.add_argument("--metadata", type=Path, help="metadata.csv (defaults per --dataset)")
     parser.add_argument("--dataset", choices=SCRIPTS, default="biosar")
     parser.add_argument("--data", type=Path, help="audio root (defaults per --dataset)")
     parser.add_argument("--epochs", type=int, default=100)
@@ -30,8 +33,8 @@ def main():
     parser.add_argument("--gpus", type=int, default=1, help="2 = DDP over both T4s (dual-gpu.py)")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    if args.dataset == "mix" and args.gpus > 1:
-        parser.error("--dataset mix only supports --gpus 1 (dual-gpu.py has no mix mode)")
+    if args.dataset in ("mix", "biosar-full") and args.gpus > 1:
+        parser.error(f"--dataset {args.dataset} only supports --gpus 1 (dual-gpu.py has no {args.dataset} mode)")
 
     if not (PROJECT_DIR / ".git").is_dir():
         PROJECT_DIR.parent.mkdir(parents=True, exist_ok=True)
@@ -41,8 +44,15 @@ def main():
         )
 
     project_dir = PROJECT_DIR
-    default_data = CIRCO_DATA_DIR if args.dataset in ("circo", "mix") else DATA_DIR
+    if args.dataset == "biosar-full":
+        default_data = FULL_DATA_DIR
+    elif args.dataset in ("circo", "mix"):
+        default_data = CIRCO_DATA_DIR
+    else:
+        default_data = DATA_DIR
     data_dir = args.data or default_data
+    default_metadata = (FULL_DATA_DIR if args.dataset == "biosar-full" else DATA_DIR) / "metadata.csv"
+    metadata = args.metadata or default_metadata
     commit = subprocess.run(
         ["git", "-C", str(project_dir), "rev-parse", "--short", "HEAD"],
         check=True,
@@ -52,7 +62,7 @@ def main():
     output_path = args.output or Path(f"/kaggle/working/{args.dataset}-kaggle-{commit}.pt")
 
     train_args = [
-        "--metadata", str(args.metadata),
+        "--metadata", str(metadata),
         "--data", str(data_dir),
         "--epochs", str(args.epochs),
         "--output", str(output_path),

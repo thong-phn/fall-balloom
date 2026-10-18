@@ -1,3 +1,8 @@
+"""
+cd fall-ballooms
+python -m utils.datasets
+"""
+
 import torch
 from torch.utils.data import Dataset
 from pathlib import Path
@@ -51,7 +56,6 @@ class CirCoBioSAR(Dataset):
             item["mixture_id"],
         )
 
-
 class CirCo(CirCoBioSAR):
     """
     Clean CirCo version of CirCoBioSAR.
@@ -69,6 +73,95 @@ class CirCo(CirCoBioSAR):
         for item in self.items:
             item["audio_path"] = self.data_path / primary[item["mixture_id"]]
 
+class BioSARHeart(Dataset):
+    def __init__(self, 
+                data_path='./datasets/BioSARDdBScene/', 
+                metadata_path='datasets/BioSARDdBScene/metadata.csv', 
+                split=None, 
+                train=False):
+        
+        # make list of path to file
+        self.data_path = Path(data_path)
+        self.train = train
+        self.items = [] # contain the paths
+
+        # load data from metadata.csv
+        with open(metadata_path, newline="") as f:
+            for row in csv.DictReader(f):
+                # get only the heart (primary)
+                if row["organ"] != "Heart":
+                    continue 
+
+                # get split
+                if split is not None and row["split"] != split:
+                    continue
+
+                # add items 
+                self.items.append({
+                    "audio_path": self.data_path / row["audio_path"],
+                    "label": int(row["label"] == "abnormal"),
+                    "organ": row["organ"],
+                    "mixture_id": row["mixture_id"]
+                })
+        
+    def __len__(self):
+        return len(self.items)
+    
+    def __getitem__(self, index):
+        # preprocess
+        # feed to the DatasetLoader
+        item = self.items[index]
+    
+        features = preprocess(str(item["audio_path"]), train=self.train)
+    
+        return (features,
+                torch.tensor(item["label"], dtype=torch.float32),
+                item["mixture_id"])
+
+
+ORGANS = ["Bowel", "Heart", "Joint", "Lung"]
+CLASS_NAMES = [f"{o}-{c}" for o in ORGANS for c in ("normal", "abnormal")]
+
+
+class BioSARMulti(Dataset):
+    """
+    All organs of BioSAR, 8 classes: class = 2 * organ_index + (label == abnormal).
+    Class names are in CLASS_NAMES.
+    """
+    def __init__(self,
+                data_path='./datasets/BioSARDdBScene/',
+                metadata_path='datasets/BioSARDdBScene/metadata.csv',
+                split=None,
+                train=False):
+        self.data_path = Path(data_path)
+        self.train = train
+        self.items = []
+
+        with open(metadata_path, newline="") as f:
+            for row in csv.DictReader(f):
+                if split is not None and row["split"] != split:
+                    continue
+                self.items.append({
+                    "audio_path": self.data_path / row["audio_path"],
+                    "label": 2 * ORGANS.index(row["organ"]) + int(row["label"] == "abnormal"),
+                    "mixture_id": row["mixture_id"],
+                })
+
+    def __len__(self):
+        return len(self.items)
+
+    def labels(self):
+        return [item["label"] for item in self.items]
+
+    def __getitem__(self, index):
+        item = self.items[index]
+        features = preprocess(str(item["audio_path"]), train=self.train)
+        return features, torch.tensor(item["label"], dtype=torch.long), item["mixture_id"]
+
+
 if __name__ == "__main__":
-    data = CirCoBioSAR(split='train')
-    print(len(data))
+    train_data = BioSARHeart(split='train')
+    val_data = BioSARHeart(split='val')
+    test_data = BioSARHeart(split='test')
+
+    print(f"train: {len(train_data)}, val: {len(val_data)}, test: {len(val_data)}")
