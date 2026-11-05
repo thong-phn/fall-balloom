@@ -7,6 +7,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
+from utils.dataaugment import SpecAugment
 from utils.datasets import DATASETS
 from utils.models import (
     AuscultationAttentionCNN,
@@ -18,7 +19,7 @@ from utils.models import (
 from utils.utils import binary_metrics, fmt, set_seed
 
 
-def run_one_epoch(model, loader, loss_fn, device, optimizer=None):
+def run_one_epoch(model, loader, loss_fn, device, optimizer=None, augment=None):
     training = optimizer is not None
     model.train(training)
     total_loss = 0.0
@@ -30,6 +31,8 @@ def run_one_epoch(model, loader, loss_fn, device, optimizer=None):
 
         if training:
             features = features.to(device)
+            if augment is not None:
+                features = augment(features)
             optimizer.zero_grad()
             logits = model(features)  # [B]
             loss = loss_fn(logits, labels)
@@ -82,6 +85,7 @@ def main():
         default=0.5,
         help="abnormal pos_weight = (n_normal / n_abnormal)^power; 1 = fully balanced, 0 = off",
     )
+    parser.add_argument("--specaug", action="store_true", help="SpecAugment (frequency and time masks) on training batches")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--num-workers",
@@ -149,6 +153,8 @@ def main():
     print(f"Model: {args.model}; params: {sum(p.numel() for p in model.parameters()):,}")
     loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight.to(device))
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    augment = SpecAugment() if args.specaug else None
+    print(f"SpecAugment: {'on' if augment else 'off'}")
     output_path = Path(args.output or f"models/ckpt/heart-{args.dataset}.pt")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     best_val_auroc = float("-inf")
@@ -166,7 +172,7 @@ def main():
 
     # training loop
     for epoch in range(args.epochs):
-        train_loss, train_metrics, _, _ = run_one_epoch(model, train_loader, loss_fn, device, optimizer)
+        train_loss, train_metrics, _, _ = run_one_epoch(model, train_loader, loss_fn, device, optimizer, augment)
         val_loss, val_metrics, _, _ = run_one_epoch(model, val_loader, loss_fn, device)
         print(
             f"Epoch {epoch}/{args.epochs}: "

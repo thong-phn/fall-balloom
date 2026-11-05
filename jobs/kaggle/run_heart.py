@@ -9,17 +9,19 @@ PROJECT_DIR = Path("/kaggle/working/fall-balloom")
 METADATA_SLUG = "biosardbscence-bmd"  # holds the metadata.csv (rows, labels, split)
 AUDIO_SLUG = "bmd-original"  # holds the clean recordings in train/
 
-SCRIPT = "biosar-heart-ae.py"  # autoencoder. For the CNN use "biosar-heart.py" and add "--model", "simple-cnn" to ARGS
+SCRIPT = "biosar-heart.py"  # CNN classifier. For the autoencoder use "biosar-heart-ae.py" and drop "--model" and "--specaug"
 TRAIN = "biosar-bmd"  # train and val on this dataset: "bmd" (clean) or "biosar-bmd" (mixtures)
 TEST = "biosar-bmd"  # test on this dataset
 # Kaggle's CLI cannot attach a version note. This text is printed first in the log and saved as note.txt.
-NOTE = "autoencoder, train normal only, biosar-bmd"
+NOTE = "simple-cnn + SpecAugment, train/val/test biosar-bmd"
 
 # Edit these, then run `kaggle kernels push -p jobs/kaggle`.
 ARGS = [
     "--dataset", TRAIN,
     "--test-dataset", TEST,
-    "--epochs", "200",
+    "--model", "simple-cnn",
+    "--specaug",
+    "--epochs", "100",
     "--num-workers", "4",
     "--output", f"/kaggle/working/heart-{TRAIN}-test-{TEST}.pt",
 ]
