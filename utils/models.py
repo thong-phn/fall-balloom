@@ -137,6 +137,42 @@ class AuscultationAttentionCNN(nn.Module):
         return logits.squeeze(1) if logits.shape[1] == 1 else logits
 
 
+class SimpleCNNAutoencoder(nn.Module):
+    """Small conv autoencoder for anomaly detection: train on normal sounds only.
+
+    Input: [B, 1, mel, time] log-mel. forward() returns the reconstruction.
+    recon_error() returns one MSE per sample. A high error means abnormal.
+    The target is the per-sample standardized input, because log-mel is not normalized.
+    """
+    def __init__(self):
+        super().__init__()
+
+        def down(i, o):
+            return [nn.Conv2d(i, o, 3, stride=2, padding=1), nn.BatchNorm2d(o), nn.ReLU()]
+
+        def up(i, o):
+            return [nn.ConvTranspose2d(i, o, 3, stride=2, padding=1, output_padding=1), nn.BatchNorm2d(o), nn.ReLU()]
+
+        self.encoder = nn.Sequential(*down(1, 16), *down(16, 32), *down(32, 64))
+        self.decoder = nn.Sequential(*up(64, 32), *up(32, 16), nn.ConvTranspose2d(16, 1, 3, stride=2, padding=1, output_padding=1))
+
+    @staticmethod
+    def _shape(x):
+        if x.ndim == 5 and x.shape[1] == 1:
+            x = x.squeeze(1)
+        return x.unsqueeze(0) if x.ndim == 3 else x
+
+    def forward(self, x):
+        x = self._shape(x)
+        recon = self.decoder(self.encoder(x))
+        return F.interpolate(recon, size=x.shape[-2:], mode="bilinear", align_corners=False)
+
+    def recon_error(self, x):
+        x = self._shape(x)
+        target = (x - x.mean((1, 2, 3), keepdim=True)) / (x.std((1, 2, 3), keepdim=True) + 1e-5)
+        return ((self(x) - target) ** 2).mean((1, 2, 3))  # [B]
+
+
 class MambaBlock(nn.Module):
     """Minimal pure-PyTorch Mamba block (selective SSM, sequential scan)."""
     def __init__(self, d_model, d_state=8, d_conv=4, expand=2):

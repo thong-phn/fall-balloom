@@ -183,6 +183,17 @@ class BioSARMulti(Dataset):
         return features, torch.tensor(item["label"], dtype=torch.long), item["mixture_id"]
 
 
+
+# name -> (dataset class, default metadata.csv, default audio folder)
+DATASETS = {
+    "biosar": (BioSARHeart, "./datasets/BioSARDdBScene/metadata.csv", "./datasets/BioSARDdBScene/"),
+    "biosar-circo": (CirCoBioSAR, "./datasets/BioSARdBScene-CirCo/metadata.csv", "./datasets/BioSARdBScene-CirCo"),
+    "circo": (CirCo, "./datasets/BioSARdBScene-CirCo/metadata.csv", "./datasets/CirCo/training_data/training_data"),
+    "biosar-bmd": (BMDBioSAR, "./datasets/BioSARdBScence-BMD/metadata.csv", "./datasets/BioSARdBScence-BMD"),
+    "bmd": (BMD, "./datasets/BioSARdBScence-BMD/metadata.csv", "./datasets/BMD/train"),
+}
+
+
 if __name__ == "__main__":
     train_data = BioSARHeart(split='train')
     val_data = BioSARHeart(split='val')

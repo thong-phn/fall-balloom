@@ -7,7 +7,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from utils.datasets import BMD, BioSARHeart, BMDBioSAR, CirCo, CirCoBioSAR
+from utils.datasets import DATASETS
 from utils.models import (
     AuscultationAttentionCNN,
     EdgeMamba,
@@ -16,16 +16,6 @@ from utils.models import (
     TinyMamba,
 )
 from utils.utils import binary_metrics, fmt, set_seed
-
-
-# name -> (dataset class, default metadata.csv, default audio folder)
-DATASETS = {
-    "biosar": (BioSARHeart, "./datasets/BioSARDdBScene/metadata.csv", "./datasets/BioSARDdBScene/"),
-    "biosar-circo": (CirCoBioSAR, "./datasets/BioSARdBScene-CirCo/metadata.csv", "./datasets/BioSARdBScene-CirCo"),
-    "circo": (CirCo, "./datasets/BioSARdBScene-CirCo/metadata.csv", "./datasets/CirCo/training_data/training_data"),
-    "biosar-bmd": (BMDBioSAR, "./datasets/BioSARdBScence-BMD/metadata.csv", "./datasets/BioSARdBScence-BMD"),
-    "bmd": (BMD, "./datasets/BioSARdBScence-BMD/metadata.csv", "./datasets/BMD/train"),
-}
 
 
 def run_one_epoch(model, loader, loss_fn, device, optimizer=None):
