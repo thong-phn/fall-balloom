@@ -17,6 +17,8 @@ class CirCoBioSAR(Dataset):
     split = 'train', 'val', 'test'
     train = True -> randomly select chunk
     """
+    SOURCE = "Circo"  # keep heart rows whose primary_source contains this
+
     def __init__(self, metadata_path='./datasets/BioSARdBScene-CirCo/metadata.csv', data_path = './datasets/BioSARdBScene-CirCo', split=None, train=False):
         self.data_path = Path(data_path)
         self.train = train
@@ -27,7 +29,7 @@ class CirCoBioSAR(Dataset):
             for row in csv.DictReader(f):
 
                 # get only the heart (primary) from circo
-                if row["organ"] != "Heart" or "Circo" not in row["primary_source"]:
+                if row["organ"] != "Heart" or self.SOURCE not in row["primary_source"]:
                     continue 
 
                 # split
@@ -44,6 +46,9 @@ class CirCoBioSAR(Dataset):
 
     def __len__(self):
         return len(self.items)
+
+    def labels(self):
+        return [item["label"] for item in self.items]
 
     def __getitem__(self, index):
         item = self.items[index]
@@ -72,6 +77,22 @@ class CirCo(CirCoBioSAR):
                 primary[row["mixture_id"]] = Path(row["primary_source"]).name
         for item in self.items:
             item["audio_path"] = self.data_path / primary[item["mixture_id"]]
+
+class BMDBioSAR(CirCoBioSAR):
+    """BioSAR BMD version (BMD-HS heart recordings). Same split and labels as the metadata.csv."""
+    SOURCE = "BMD"
+
+    def __init__(self, metadata_path='./datasets/BioSARdBScence-BMD/metadata.csv', data_path='./datasets/BioSARdBScence-BMD', split=None, train=False):
+        super().__init__(metadata_path, data_path, split=split, train=train)
+
+
+class BMD(CirCo):
+    """Clean BMD version of BMDBioSAR: the original BMD-HS recording (primary_source) instead of the mixture."""
+    SOURCE = "BMD"
+
+    def __init__(self, metadata_path='./datasets/BioSARdBScence-BMD/metadata.csv', data_path='./datasets/BMD/train', split=None, train=False):
+        super().__init__(metadata_path, data_path, split=split, train=train)
+
 
 class BioSARHeart(Dataset):
     def __init__(self, 
@@ -106,7 +127,10 @@ class BioSARHeart(Dataset):
         
     def __len__(self):
         return len(self.items)
-    
+
+    def labels(self):
+        return [item["label"] for item in self.items]
+
     def __getitem__(self, index):
         # preprocess
         # feed to the DatasetLoader
