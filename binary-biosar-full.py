@@ -9,10 +9,14 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from utils.datasets import CLASS_NAMES, BioSARMulti
-from utils.models import EdgeMamba, SeparableCNN, SimpleCNN, TinyMamba
-from utils.utils import binary_f1_auroc, set_seed
-
-NUM_CLASSES = len(CLASS_NAMES)  # 4 organs x (normal, abnormal)
+from utils.models import (
+    AuscultationAttentionCNN,
+    EdgeMamba,
+    SeparableCNN,
+    SimpleCNN,
+    TinyMamba,
+)
+from utils.utils import binary_f1_auroc, set_seed, multiclass_metrics, NUM_CLASSES
 
 
 def class_counts(labels):
@@ -29,37 +33,23 @@ def class_weights(counts, power):
     return w * counts.sum() / (w * counts).sum()
 
 
-def multiclass_metrics(logits, labels):
-    """Accuracy, balanced accuracy, macro-F1 and macro one-vs-rest AUROC (present classes only)."""
+def per_class_report(logits, labels):
     preds = logits.argmax(dim=1)
-    recalls, f1s, aurocs = [], [], []
-    for c in range(NUM_CLASSES):
-        is_c, pred_c = labels == c, preds == c
-        if not is_c.any():
-            continue
+    print("\tclass            n   recall  specificity  f1")
+    for c, name in enumerate(CLASS_NAMES):
+        is_c = labels == c
+        pred_c = preds == c
         tp = (is_c & pred_c).sum().item()
         fp = (~is_c & pred_c).sum().item()
         fn = (is_c & ~pred_c).sum().item()
-        recalls.append(tp / (tp + fn))
-        f1s.append(2 * tp / (2 * tp + fp + fn))
-        if (~is_c).any():
-            aurocs.append(binary_f1_auroc(logits[:, c], is_c.float())[1])
-    return {
-        "acc": (preds == labels).float().mean().item(),
-        "bal_acc": sum(recalls) / len(recalls),
-        "macro_f1": sum(f1s) / len(f1s),
-        "macro_auroc": sum(aurocs) / len(aurocs) if aurocs else float("nan"),
-    }
-
-
-def per_class_report(logits, labels):
-    preds = logits.argmax(dim=1)
-    print("\tclass            n   recall")
-    for c, name in enumerate(CLASS_NAMES):
-        is_c = labels == c
-        if is_c.any():
-            recall = (preds[is_c] == c).float().mean().item()
-            print(f"\t{name:<14}{is_c.sum().item():>5}   {recall:.3f}")
+        tn = (~is_c & ~pred_c).sum().item()
+        recall = tp / (tp + fn) if tp + fn else float("nan")
+        specificity = tn / (tn + fp) if tn + fp else float("nan")
+        f1 = 2 * tp / (2 * tp + fp + fn) if 2 * tp + fp + fn else float("nan")
+        print(
+            f"\t{name:<14}{is_c.sum().item():>5}   {recall:.3f}"
+            f"      {specificity:.3f}    {f1:.3f}"
+        )
 
 
 def run_one_epoch(model, loader, loss_fn, device, optimizer=None):
@@ -111,7 +101,12 @@ def main():
     parser.add_argument("--early-stop", type=int, default=5)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
-    parser.add_argument("--model", choices=["cnn", "simple-cnn", "mamba", "edge-mamba"], default="cnn")
+    parser.add_argument(
+        "--model",
+        choices=["cnn", "simple-cnn", "attn-cnn", "mamba", "edge-mamba"],
+        default="cnn",
+        help="attn-cnn adds low-cost multi-scale temporal and frequency attention",
+    )
     parser.add_argument(
         "--balance-power",
         type=float,
@@ -167,6 +162,8 @@ def main():
         model = EdgeMamba(n_mels=sample_features.shape[-2], num_classes=NUM_CLASSES).to(device)
     elif args.model == "simple-cnn":
         model = SimpleCNN(num_classes=NUM_CLASSES).to(device)
+    elif args.model == "attn-cnn":
+        model = AuscultationAttentionCNN(num_classes=NUM_CLASSES).to(device)
     else:
         model = SeparableCNN(num_classes=NUM_CLASSES).to(device)
     print(f"Model: {args.model}; params: {sum(p.numel() for p in model.parameters()):,}")
@@ -223,6 +220,12 @@ def main():
     model.load_state_dict(checkpoint["model_state_dict"])
     test_loss, test_metrics, test_logits, test_labels = run_one_epoch(model, test_loader, loss_fn, device)
     print(f"Test: loss={test_loss:.4f} {fmt(test_metrics)}")
+    print(
+        "Test macro metrics: "
+        f"recall={test_metrics['macro_recall']:.3f} "
+        f"specificity={test_metrics['macro_specificity']:.3f} "
+        f"macro_f1={test_metrics['macro_f1']:.3f}"
+    )
     per_class_report(test_logits, test_labels)
     print(f"Best checkpoint saved to {output_path}")
 
@@ -232,6 +235,8 @@ def main():
     print(f"val_bal_acc:     {best_val_metrics['bal_acc']:.6f}")
     print(f"val_macro_auroc: {best_val_metrics['macro_auroc']:.6f}")
     print(f"test_macro_f1:   {test_metrics['macro_f1']:.6f}")
+    print(f"test_macro_recall:{test_metrics['macro_recall']:.6f}")
+    print(f"test_macro_spec:  {test_metrics['macro_specificity']:.6f}")
     print(f"test_bal_acc:    {test_metrics['bal_acc']:.6f}")
     print(f"test_macro_auroc:{test_metrics['macro_auroc']:.6f}")
     print(f"best_epoch:      {best_epoch}")

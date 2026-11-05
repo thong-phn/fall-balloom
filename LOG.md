@@ -1,5 +1,6 @@
 Exp
 single gpu
+
     all class
         simple cnn 97k: loss=0.9234 acc=0.606 bal_acc=0.544 macro_f1=0.510 macro_auroc=0.875
             biosar: 0.5
@@ -23,8 +24,19 @@ single gpu
                 Joint-abnormal    3   0.333
                 Lung-normal    1287   0.796
                 Lung-abnormal   461   0.050
+        attn-cnn
+        Test: loss=0.9599 acc=0.585 macro_recall=0.488 bal_acc=0.488 macro_specificity=0.905 macro_f1=0.461 macro_auroc=0.858
+            class            n   recall  specificity  f1
+            Bowel-normal     48   0.958      0.997    0.902
+            Bowel-abnormal   11   0.273      0.999    0.353
+            Heart-normal    427   0.138      0.980    0.224
+            Heart-abnormal  287   0.432      0.946    0.466
+            Joint-normal      5   0.400      0.999    0.400
+            Joint-abnormal    3   0.667      0.998    0.444
+            Lung-normal    1287   0.928      0.346    0.725
+            Lung-abnormal   461   0.108      0.972    0.176
         
-    normal/abnormal heart classification
+    normal/abnormal heart from circo classification
         edgemamba 10k:
             biosar-heartonly: loss=0.5276 acc=0.674 f1=0.620 auroc=0.778
         tinymamba 48k:
@@ -32,10 +44,6 @@ single gpu
         separable cnn 13k:
             biosar-heartonly: loss=0.5004 acc=0.686 f1=0.636 auroc=0.803
         simple cnn 97k:
-            model input: (batch=32, 1, 1, 64, mel=157)
-            Device: cuda; workers: 4; train: 2496; val: 312; test: 312
-            
-            biosar: 
             biosar-heartonly: loss=0.5060 acc=0.696 f1=0.621 auroc=0.791
             biosarcirco: loss=0.6687 acc=0.571 f1=0.565 auroc=0.607
             circo: loss=0.6100 acc=0.651 f1=0.615 auroc=0.707
@@ -48,41 +56,3 @@ single gpu
 
 
 
-leave for later scale
-dual gpu t4 kaggle: 30% faster time 
-
-
-
-
-
-Terminology
-    Recording: whole audio file
-    Clip: window, usually 5s
-
-
-Preprocess
-    Recordings from BioSARdB
-    Mono, resample to 4kHz
-    Remove DC
-    Split into 5s-clip
-
-Training
-    The dataset reads each recording.
-    It divides the recording into 5-second clips.
-    The training loader sends clips in batches.
-    The model predicts a score for each clip.
-    The training code compares each score with the clip’s label.
-    The optimizer updates the model after each batch.
-Validation 
-    The loader sends one recording at a time.
-    A recording can contain several 5-second clips.
-    The model predicts a score for each clip.
-    The code averages these scores.
-    It compares the average score with the recording’s label.
-    It uses this result to select the best model checkpoint.
-
-Testing
-    Testing uses the same process as validation.
-    It loads the best checkpoint.
-    It predicts each recording from its clips.
-    It reports the final loss and accuracy

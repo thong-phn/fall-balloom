@@ -84,6 +84,59 @@ class SeparableCNN(SimpleCNN):
         )
 
 
+class AuscultationAttentionCNN(nn.Module):
+    """Separable CNN with low-cost multi-scale time and frequency attention.
+
+    Input: [B, 1, mel, time] log-mel features. Time attention is computed from
+    pooled frame descriptors using short and long 1-D filters, then used to
+    pool frames. Frequency gating reweights mel bands after temporal pooling.
+    Cost is linear in the spectrogram size; there is no T-by-T attention map.
+    """
+    def __init__(self, num_classes=1):
+        super().__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(1, 16, 3, padding=1),
+            nn.BatchNorm2d(16), nn.ReLU(), nn.MaxPool2d(2),
+            separable_conv(16, 32),
+            nn.BatchNorm2d(32), nn.ReLU(), nn.MaxPool2d(2),
+            separable_conv(32, 64),
+            nn.BatchNorm2d(64), nn.ReLU(), nn.MaxPool2d(2),
+            separable_conv(64, 128),
+            nn.BatchNorm2d(128), nn.ReLU(),
+        )
+        # Two receptive fields let the scorer respond to brief transients and
+        # longer events without constructing pairwise frame interactions.
+        self.time_short = nn.Conv1d(1, 1, kernel_size=3, padding=1, bias=False)
+        self.time_long = nn.Conv1d(1, 1, kernel_size=9, padding=4, bias=False)
+        self.freq_gate = nn.Sequential(
+            nn.Conv1d(1, 1, kernel_size=3, padding=1), nn.Sigmoid()
+        )
+        self.head = nn.Sequential(
+            nn.LayerNorm(128), nn.Dropout(0.2), nn.Linear(128, num_classes)
+        )
+
+    def forward(self, x):
+        if x.ndim == 5 and x.shape[1] == 1:
+            x = x.squeeze(1)
+        if x.ndim == 3:
+            x = x.unsqueeze(0)
+        fmap = self.features(x)  # [B, C, mel/8, time/8]
+
+        # Frame evidence summarizes channels and mel bands. Softmax pooling
+        # gives informative frames more influence in the recording embedding.
+        frame_desc = fmap.mean(dim=(1, 2), keepdim=False).unsqueeze(1)  # [B,1,T]
+        time_scores = self.time_short(frame_desc) + self.time_long(frame_desc)
+        time_weights = torch.softmax(time_scores, dim=-1)
+        pooled = (fmap * time_weights.unsqueeze(2)).sum(dim=-1)  # [B,C,F]
+
+        # Smooth, per-recording mel-band gate; then pool the frequency axis.
+        freq_desc = pooled.mean(dim=1, keepdim=True)  # [B,1,F]
+        pooled = pooled * self.freq_gate(freq_desc)
+        embedding = pooled.mean(dim=-1)
+        logits = self.head(embedding)
+        return logits.squeeze(1) if logits.shape[1] == 1 else logits
+
+
 class MambaBlock(nn.Module):
     """Minimal pure-PyTorch Mamba block (selective SSM, sequential scan)."""
     def __init__(self, d_model, d_state=8, d_conv=4, expand=2):

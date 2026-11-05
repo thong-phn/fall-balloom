@@ -1,14 +1,13 @@
-# claude
-scripts/
-ieee-download/
-.sr_edge_auscultation/
-
 # venv
 .venv/
 .claude/
+.agents/
 
 # artifacts
 datasets/
 models/
+jobs/vulcan.env
+jobs/vulcan-logs/
 utils/__pycache__/
 __pycache__/
+.archived/
