@@ -69,6 +69,12 @@ def main():
     parser.add_argument("--dataset", choices=list(DATASETS), default="biosar")
     parser.add_argument("--metadata", help="override the dataset's default metadata.csv")
     parser.add_argument("--data", help="override the dataset's default audio folder")
+    parser.add_argument(
+        "--test-dataset",
+        choices=list(DATASETS),
+        help="dataset for the test split (default: same as --dataset); train and val always use --dataset",
+    )
+    parser.add_argument("--test-data", help="override the test dataset's default audio folder")
     parser.add_argument("--output", help="checkpoint path (default models/ckpt/heart-<dataset>.pt)")
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--early-stop", type=int, default=5)
@@ -103,7 +109,13 @@ def main():
     paths = {"metadata_path": args.metadata or default_metadata, "data_path": args.data or default_data}
     train_data = dataset_cls(split="train", train=True, **paths)
     val_data = dataset_cls(split="val", train=False, **paths)
-    test_data = dataset_cls(split="test", train=False, **paths)
+    test_cls, _, test_default_data = DATASETS[args.test_dataset or args.dataset]
+    # Same metadata.csv, so train and test use the same rows and split.
+    test_paths = {
+        "metadata_path": paths["metadata_path"],
+        "data_path": args.test_data or (test_default_data if args.test_dataset else paths["data_path"]),
+    }
+    test_data = test_cls(split="test", train=False, **test_paths)
 
     num_workers = max(0, args.num_workers)
     loader_options = {
@@ -127,7 +139,7 @@ def main():
     sample_features, _, _ = next(iter(train_loader))
     print("-" * 50)
     print("TRAINING START")
-    print(f"Dataset: {args.dataset}")
+    print(f"Dataset: train/val={args.dataset} test={args.test_dataset or args.dataset}")
     print(f"Model input shape: {tuple(sample_features.shape)}")
     print(
         f"Train: normal={n_normal} abnormal={n_abnormal}; "

@@ -54,6 +54,7 @@ single gpu
             biosarbmd: 
                 val_auroc: 0.690104, test_sensitivity: 0.875000, test_specificity: 0.812500, test_f1: 0.913043, test_auroc: 0.915799, test_auprc: 0.978986, test_mcc: 0.612372
             bmd: 
+                val_auroc: 0.962674, test_sensitivity: 1.000000, test_specificity: 0.437500, test_f1: 0.941176, test_auroc: 0.993056, test_auprc: 0.998425, test_mcc: 0.623610, best_epoch: 14, epochs_run: 20, num_params: 97761, train_seconds: 119.4
             
 
 

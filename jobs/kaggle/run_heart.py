@@ -11,11 +11,12 @@ AUDIO_SLUG = "bmd-original"  # holds the clean recordings in train/
 
 # Edit these, then run `kaggle kernels push -p jobs/kaggle`.
 ARGS = [
-    "--dataset", "bmd",
+    "--dataset", "biosar-bmd",  # train and val on the BioSAR mixtures
+    "--test-dataset", "bmd",  # test on the clean recordings
     "--model", "simple-cnn",
     "--epochs", "100",
     "--num-workers", "4",
-    "--output", "/kaggle/working/heart-bmd.pt",
+    "--output", "/kaggle/working/heart-biosar-bmd-test-bmd.pt",
 ]
 
 if not (PROJECT_DIR / ".git").is_dir():
@@ -30,7 +31,7 @@ metadata = next(p for p in inputs.rglob("metadata.csv") if METADATA_SLUG in p.pa
 audio = next(p for p in inputs.rglob("train") if p.is_dir() and AUDIO_SLUG in p.parts)
 subprocess.run(
     [sys.executable, "-u", str(PROJECT_DIR / "biosar-heart.py"),
-     "--metadata", str(metadata), "--data", str(audio), *ARGS],
+     "--metadata", str(metadata), "--data", str(metadata.parent), "--test-data", str(audio), *ARGS],
     check=True,
     cwd=PROJECT_DIR,
 )
