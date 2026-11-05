@@ -6,15 +6,16 @@ from pathlib import Path
 REPO_URL = "https://github.com/thong-phn/fall-balloom.git"
 BRANCH = "manual-biosar-exp"
 PROJECT_DIR = Path("/kaggle/working/fall-balloom")
-DATASET_SLUG = "biosardbscence-bmd"
+METADATA_SLUG = "biosardbscence-bmd"  # holds the metadata.csv (rows, labels, split)
+AUDIO_SLUG = "bmd-original"  # holds the clean recordings in train/
 
 # Edit these, then run `kaggle kernels push -p jobs/kaggle`.
 ARGS = [
-    "--dataset", "biosar-bmd",
+    "--dataset", "bmd",
     "--model", "simple-cnn",
     "--epochs", "100",
     "--num-workers", "4",
-    "--output", "/kaggle/working/heart-biosar-bmd.pt",
+    "--output", "/kaggle/working/heart-bmd.pt",
 ]
 
 if not (PROJECT_DIR / ".git").is_dir():
@@ -22,12 +23,14 @@ if not (PROJECT_DIR / ".git").is_dir():
         ["git", "clone", "--depth", "1", "--branch", BRANCH, REPO_URL, str(PROJECT_DIR)], check=True
     )
 
-# Kaggle mounts the dataset at /kaggle/input/<slug> or /kaggle/input/datasets/<owner>/<slug>.
-# Search for it by slug so both layouts work.
-metadata = next(p for p in Path("/kaggle/input").rglob("metadata.csv") if DATASET_SLUG in p.parts)
+# Kaggle mounts a dataset at /kaggle/input/<slug> or /kaggle/input/datasets/<owner>/<slug>.
+# Search by slug so both layouts work.
+inputs = Path("/kaggle/input")
+metadata = next(p for p in inputs.rglob("metadata.csv") if METADATA_SLUG in p.parts)
+audio = next(p for p in inputs.rglob("train") if p.is_dir() and AUDIO_SLUG in p.parts)
 subprocess.run(
     [sys.executable, "-u", str(PROJECT_DIR / "biosar-heart.py"),
-     "--metadata", str(metadata), "--data", str(metadata.parent), *ARGS],
+     "--metadata", str(metadata), "--data", str(audio), *ARGS],
     check=True,
     cwd=PROJECT_DIR,
 )

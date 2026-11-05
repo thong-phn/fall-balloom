@@ -9,7 +9,7 @@
   "enable_tpu": "false",
   "enable_internet": "true",
   "machine_shape": "",
-  "dataset_sources": ["thongp/biosardbscence-bmd"],
+  "dataset_sources": ["thongp/biosardbscence-bmd", "thongp/bmd-original"],
   "competition_sources": [],
   "kernel_sources": [],
   "model_sources": []
