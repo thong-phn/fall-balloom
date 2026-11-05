@@ -53,13 +53,8 @@ single gpu
             
             biosarbmd: val_auroc: 0.690104, test_sensitivity: 0.875000, test_specificity: 0.812500, test_f1: 0.913043, test_auroc: 0.915799, test_auprc: 0.978986, test_mcc: 0.612372
             bmd: val_auroc: 0.962674, test_sensitivity: 1.000000, test_specificity: 0.437500, test_f1: 0.941176, test_auroc: 0.993056, test_auprc: 0.998425, test_mcc: 0.623610, best_epoch: 14, epochs_run: 20, num_params: 97761, train_seconds: 119.4
-                train biosarbmd, test bmd: val_auroc:       0.730903
-test_sensitivity: 1.000000
-test_specificity: 0.312500
-test_f1: 0.929032
-test_auroc: 0.962674
-test_auprc: 0.991937
-test_mcc: 0.520658
+                train biosarbmd, test bmd: val_auroc: 0.730903, test_sensitivity: 1.000000, test_specificity: 0.312500, test_f1: 0.929032, test_auroc: 0.962674, test_auprc: 0.991937, test_mcc: 0.520658
+                train bmd, test biosardb: val_auroc: 0.979167, test_sensitivity: 1.000000, test_specificity: 0.000000, test_f1: 0.900000, test_auroc: 0.572917, test_auprc: 0.849663, test_mcc: nan
 
 
 

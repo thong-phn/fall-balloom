@@ -3,8 +3,8 @@ Always use the skill asd-ste100 to answer
 Biosardb is the synthentic mixed auscultation scenes
 
 Each mixture layers four signals at individually measured and recorded SNRs:
-    Target organ (primary), high-passed to model chest-wall transmission — 20 Hz heart, 50 Hz lung, 30 Hz bowel.
-    A second organ (secondary), low-passed for transmission through intervening tissue — 800 Hz heart, 1,200 Hz lung, 600 Hz bowel — with a small random time offset.
+    Target organ (primary), high-passed to model chest-wall transmission — 20 Hz heart, 50 Hz lung, 30 Hz bowel. Normal and abnormal organs
+    A second organ (secondary), low-passed for transmission through intervening tissue — 800 Hz heart, 1,200 Hz lung, 600 Hz bowel — with a small random time offset. Always a normal organ.
     Recorded hospital ambient noise, drawn 40–50 dB below the primary.
     Background speech, drawn 50–60 dB below the primary.
     

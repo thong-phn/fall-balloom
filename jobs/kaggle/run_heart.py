@@ -17,7 +17,7 @@ ARGS = [
     "--dataset", TRAIN,
     "--test-dataset", TEST,
     "--model", "simple-cnn",
-    "--epochs", "100",
+    "--epochs", "1",
     "--num-workers", "4",
     "--output", f"/kaggle/working/heart-{TRAIN}-test-{TEST}.pt",
 ]
