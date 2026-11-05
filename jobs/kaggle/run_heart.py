@@ -9,14 +9,17 @@ PROJECT_DIR = Path("/kaggle/working/fall-balloom")
 METADATA_SLUG = "biosardbscence-bmd"  # holds the metadata.csv (rows, labels, split)
 AUDIO_SLUG = "bmd-original"  # holds the clean recordings in train/
 
+TRAIN = "bmd"  # train and val on this dataset: "bmd" (clean) or "biosar-bmd" (mixtures)
+TEST = "biosar-bmd"  # test on this dataset
+
 # Edit these, then run `kaggle kernels push -p jobs/kaggle`.
 ARGS = [
-    "--dataset", "biosar-bmd",  # train and val on the BioSAR mixtures
-    "--test-dataset", "bmd",  # test on the clean recordings
+    "--dataset", TRAIN,
+    "--test-dataset", TEST,
     "--model", "simple-cnn",
     "--epochs", "100",
     "--num-workers", "4",
-    "--output", "/kaggle/working/heart-biosar-bmd-test-bmd.pt",
+    "--output", f"/kaggle/working/heart-{TRAIN}-test-{TEST}.pt",
 ]
 
 if not (PROJECT_DIR / ".git").is_dir():
@@ -29,9 +32,10 @@ if not (PROJECT_DIR / ".git").is_dir():
 inputs = Path("/kaggle/input")
 metadata = next(p for p in inputs.rglob("metadata.csv") if METADATA_SLUG in p.parts)
 audio = next(p for p in inputs.rglob("train") if p.is_dir() and AUDIO_SLUG in p.parts)
+folders = {"biosar-bmd": metadata.parent, "bmd": audio}
 subprocess.run(
     [sys.executable, "-u", str(PROJECT_DIR / "biosar-heart.py"),
-     "--metadata", str(metadata), "--data", str(metadata.parent), "--test-data", str(audio), *ARGS],
+     "--metadata", str(metadata), "--data", str(folders[TRAIN]), "--test-data", str(folders[TEST]), *ARGS],
     check=True,
     cwd=PROJECT_DIR,
 )
